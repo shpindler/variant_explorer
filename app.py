@@ -5,8 +5,6 @@ Variant Explorer - быстрый анализ генетических вари
 
 import streamlit as st
 import requests
-import pandas as pd
-import json
 from datetime import datetime
 
 # Настройка страницы
