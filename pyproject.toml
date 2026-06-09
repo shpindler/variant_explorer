@@ -1,0 +1,19 @@
+[project]
+name = "variant-explorer"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Alexander Shpindler",email = "shpindler@mail.ru"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "requests (>=2.34.2,<3.0.0)",
+    "pandas (>=3.0.3,<4.0.0)",
+    "streamlit (>=1.58.0,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
