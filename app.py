@@ -48,6 +48,7 @@ variant_id = st.text_input(
     help="Формат: rs + число (например, rs429358)"
 )
 
+@st.cache_data
 def query_myvariant(rs_id):
     """Запрос к MyVariant.info API"""
     url = f"https://myvariant.info/v1/variant/{rs_id}"
@@ -130,8 +131,8 @@ def create_info_card(data, variant_name):
         if gnomad:
             af = gnomad.get('af', 0)
             if af:
-                for key in af:
-                    st.markdown(f"**{key}:** {af[key]:.4f} ({af[key]*100:.2f}%)")
+                first_value = list(af.values())[0]
+                st.markdown(f"**Общая частота:** {first_value:.4f} ({first_value*100:.2f}%)")
             
             # Популяционные подгруппы
             populations = {
@@ -186,59 +187,64 @@ def show_clinical_trials(gene):
 # Основная логика
 if variant_id:
     with st.spinner(f"🔍 Анализ варианта {variant_id}..."):
-        data = query_myvariant(variant_id)
+        _data = query_myvariant(variant_id)
+
+        if isinstance(_data, dict):
+            _data = [_data]
         
-        if data and data.get('_id'):
-            st.success(f"✅ Успешно загружены данные для {variant_id}")
-            
-            # Основная информация
-            info = create_info_card(data, variant_id)
-            
-            # Дополнительные секции
-            st.markdown("---")
-            
-            # Сырые данные (для разработчиков)
-            with st.expander("📊 Подробные данные API"):
-                st.json(data)
-            
-            # Поиск клинических исследований
-            if info.get('gene') and info['gene'] != 'Неизвестен':
-                show_clinical_trials(info['gene'])
-            
-            # Интерпретационная заметка
-            st.markdown("---")
-            st.markdown("### 💡 Интерпретационная заметка")
-            
-            if "патоген" in info['significance'].lower():
-                st.warning("""
-                🧬 **Внимание:** Этот вариант ассоциирован с заболеванием.
+        for i, data in enumerate(_data):
+            if data and data.get('_id'):
+                st.success(f"✅ Успешно загружены данные для {variant_id}")
                 
-                **Рекомендации:**
-                - Консультация генетика
-                - Семейное консультирование при необходимости
-                - Мониторинг клинических проявлений
-                """)
-            elif "доброкачествен" in info['significance'].lower():
-                st.info("""
-                ✅ **Хорошая новость:** Вариант классифицируется как доброкачественный.
+                # Основная информация
+                info = create_info_card(data, variant_id)
                 
-                Клинической значимости не имеет, не требует дополнительного наблюдения.
-                """)
+                # Дополнительные секции
+                st.markdown("---")
+                
+                # Сырые данные (для разработчиков)
+                with st.expander("📊 Подробные данные API"):
+                    st.json(data)
+                
+                # Поиск клинических исследований
+                if info.get('gene') and info['gene'] != 'Неизвестен':
+                    show_clinical_trials(info['gene'])
+                
+                # Интерпретационная заметка
+                st.markdown("---")
+                st.markdown("### 💡 Интерпретационная заметка")
+                
+                if "патоген" in info['significance'].lower():
+                    st.warning("""
+                    🧬 **Внимание:** Этот вариант ассоциирован с заболеванием.
+                    
+                    **Рекомендации:**
+                    - Консультация генетика
+                    - Семейное консультирование при необходимости
+                    - Мониторинг клинических проявлений
+                    """)
+                elif "доброкачествен" in info['significance'].lower():
+                    st.info("""
+                    ✅ **Хорошая новость:** Вариант классифицируется как доброкачественный.
+                    
+                    Клинической значимости не имеет, не требует дополнительного наблюдения.
+                    """)
+                else:
+                    st.info("""
+                    📊 **Требуется дополнительный анализ:** Вариант имеет неопределенную клиническую значимость.
+                    
+                    Рекомендуется поиск литературы и консультация с экспертом.
+                    """)
             else:
-                st.info("""
-                📊 **Требуется дополнительный анализ:** Вариант имеет неопределенную клиническую значимость.
-                
-                Рекомендуется поиск литературы и консультация с экспертом.
+                st.error(f"❌ Вариант {variant_id} не найден в базах данных")
+                st.markdown("""
+                **Возможные причины:**
+                - Неправильный формат (нужно rs + число)
+                - Редкий вариант, отсутствующий в публичных базах
+                - Проблемы с соединением с API
                 """)
-            
-        else:
-            st.error(f"❌ Вариант {variant_id} не найден в базах данных")
-            st.markdown("""
-            **Возможные причины:**
-            - Неправильный формат (нужно rs + число)
-            - Редкий вариант, отсутствующий в публичных базах
-            - Проблемы с соединением с API
-            """)
+            if i < len(_data) - 1:
+                st.divider()
 
 # Footer
 st.markdown("---")
